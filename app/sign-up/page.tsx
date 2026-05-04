@@ -9,25 +9,25 @@ import { SignUpForm } from "@/components/auth-components/sign-up-form"
 
 export default function SignUpPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4 py-12">
+    <div className="flex min-h-screen items-center justify-center bg-white px-4 py-12">
       <div className="w-full max-w-lg">
-        <Card className="shadow-lg">
+        <Card className="shadow-lg border-gray-200">
           <CardHeader className="space-y-2 pb-6">
-            <CardTitle className="text-3xl font-bold tracking-tight text-center">
+            <CardTitle className="text-3xl font-bold tracking-tight text-center text-black">
               Create an account
             </CardTitle>
-            <CardDescription className="text-base text-center text-muted-foreground">
+            <CardDescription className="text-base text-center text-black/70">
               Enter your details below to create your account
             </CardDescription>
           </CardHeader>
           <CardContent className="pb-6">
             <SignUpForm />
 
-            <div className="mt-6 text-center text-sm text-muted-foreground">
+            <div className="mt-6 text-center text-sm text-black/70">
               Already have an account?{" "}
               <a
                 href="/sign-in"
-                className="font-medium text-primary transition-colors hover:text-primary/80 underline underline-offset-4"
+                className="font-medium text-black transition-colors hover:text-black/80 underline underline-offset-4 hover:cursor-pointer"
               >
                 Sign in
               </a>

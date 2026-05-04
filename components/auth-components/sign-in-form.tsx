@@ -83,16 +83,16 @@ export function SignInForm() {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-sm font-medium">Email</FormLabel>
+              <FormLabel className="text-sm font-medium text-black">Email</FormLabel>
               <FormControl>
                 <Input
                   type="email"
                   placeholder="john@example.com"
-                  className="h-11 px-4 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+                  className="h-11 px-4 transition-all duration-200 focus:ring-2 focus:ring-black/20"
                   {...field}
                 />
               </FormControl>
-              <FormMessage className="text-xs" />
+              <FormMessage className="text-xs text-black/70" />
             </FormItem>
           )}
         />
@@ -102,16 +102,16 @@ export function SignInForm() {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-sm font-medium">Password</FormLabel>
+              <FormLabel className="text-sm font-medium text-black">Password</FormLabel>
               <FormControl>
                 <Input
                   type="password"
                   placeholder="••••••••"
-                  className="h-11 px-4 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+                  className="h-11 px-4 transition-all duration-200 focus:ring-2 focus:ring-black/20"
                   {...field}
                 />
               </FormControl>
-              <FormMessage className="text-xs" />
+              <FormMessage className="text-xs text-black/70" />
             </FormItem>
           )}
         />
@@ -130,7 +130,7 @@ export function SignInForm() {
 
         <Button
           type="submit"
-          className="h-11 w-full text-base font-semibold transition-all duration-200 hover:shadow-md"
+          className="h-11 w-full text-base font-semibold transition-all duration-200 hover:shadow-md hover:cursor-pointer"
           disabled={isLoading}
         >
           {isLoading ? (
