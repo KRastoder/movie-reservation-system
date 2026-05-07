@@ -24,7 +24,7 @@ export default function SignInPage() {
             <SignInForm />
 
             <div className="mt-6 text-center text-sm text-black/70">
-              Don't have an account?{" "}
+              Dont have an account?{" "}
               <a
                 href="/sign-up"
                 className="font-medium text-black transition-colors hover:text-black/80 underline underline-offset-4 hover:cursor-pointer"

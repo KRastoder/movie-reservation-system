@@ -45,7 +45,9 @@ export default function AdminDashboard() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState<number | null>(null);
   const [createTagDialogOpen, setCreateTagDialogOpen] = useState(false);
-  const [editTagDialogOpen, setEditTagDialogOpen] = useState<number | null>(null);
+  const [editTagDialogOpen, setEditTagDialogOpen] = useState<number | null>(
+    null,
+  );
 
   useEffect(() => {
     loadData();
@@ -57,14 +59,14 @@ export default function AdminDashboard() {
         fetch("/api/movies"),
         fetch("/api/tags"),
       ]);
-      
+
       if (!moviesRes.ok || !tagsRes.ok) {
         throw new Error("Failed to fetch data");
       }
-      
+
       const moviesData = await moviesRes.json();
       const tagsData = await tagsRes.json();
-      
+
       setMovies(moviesData);
       setTags(tagsData);
       setLoading(false);
@@ -79,6 +81,9 @@ export default function AdminDashboard() {
       await createTag(formData);
       setSuccess("Tag created successfully");
       setError(null);
+      setTimeout(() => {
+        setSuccess(null);
+      }, 2000);
       setCreateTagDialogOpen(false);
       await loadData();
     } catch (e) {
@@ -94,6 +99,10 @@ export default function AdminDashboard() {
       setError(null);
       setEditTagDialogOpen(null);
       await loadData();
+
+      setTimeout(() => {
+        setSuccess(null);
+      }, 2000);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to update tag");
       setSuccess(null);
@@ -102,12 +111,15 @@ export default function AdminDashboard() {
 
   async function handleDeleteTag(id: number) {
     if (!confirm("Are you sure you want to delete this tag?")) return;
-    
+
     try {
       await deleteTag(id);
       setSuccess("Tag deleted successfully");
       setError(null);
       await loadData();
+      setTimeout(() => {
+        setSuccess(null);
+      }, 2000);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to delete tag");
       setSuccess(null);
@@ -121,6 +133,9 @@ export default function AdminDashboard() {
       setError(null);
       setCreateDialogOpen(false);
       await loadData();
+      setTimeout(() => {
+        setSuccess(null);
+      }, 2000);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to create movie");
       setSuccess(null);
@@ -134,6 +149,9 @@ export default function AdminDashboard() {
       setError(null);
       setEditDialogOpen(null);
       await loadData();
+      setTimeout(() => {
+        setSuccess(null);
+      }, 2000);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to update movie");
       setSuccess(null);
@@ -142,12 +160,15 @@ export default function AdminDashboard() {
 
   async function handleDelete(id: number) {
     if (!confirm("Are you sure you want to delete this movie?")) return;
-    
+
     try {
       await deleteMovie(id);
       setSuccess("Movie deleted successfully");
       setError(null);
       await loadData();
+      setTimeout(() => {
+        setSuccess(null);
+      }, 2000);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to delete movie");
       setSuccess(null);
@@ -374,8 +395,11 @@ export default function AdminDashboard() {
         <div className="mt-12">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-2xl font-bold">Manage Tags</h2>
-            
-            <Dialog open={createTagDialogOpen} onOpenChange={setCreateTagDialogOpen}>
+
+            <Dialog
+              open={createTagDialogOpen}
+              onOpenChange={setCreateTagDialogOpen}
+            >
               <DialogTrigger>
                 <span className="inline-flex items-center gap-2 bg-white text-black hover:bg-gray-100 border border-black px-4 py-2 rounded-md text-sm font-medium cursor-pointer">
                   <Plus className="w-4 h-4" />
@@ -384,14 +408,24 @@ export default function AdminDashboard() {
               </DialogTrigger>
               <DialogContent className="bg-white">
                 <DialogHeader>
-                  <DialogTitle className="text-black">Create New Tag</DialogTitle>
+                  <DialogTitle className="text-black">
+                    Create New Tag
+                  </DialogTitle>
                 </DialogHeader>
                 <form action={handleCreateTag} className="space-y-4">
                   <div>
                     <label className="text-black block mb-2">Tag Name</label>
-                    <Input name="tag" placeholder="Action, Drama, Comedy..." required className="text-black" />
+                    <Input
+                      name="tag"
+                      placeholder="Action, Drama, Comedy..."
+                      required
+                      className="text-black"
+                    />
                   </div>
-                  <Button type="submit" className="bg-black text-white hover:bg-gray-800">
+                  <Button
+                    type="submit"
+                    className="bg-black text-white hover:bg-gray-800"
+                  >
                     Create Tag
                   </Button>
                 </form>
@@ -417,10 +451,17 @@ export default function AdminDashboard() {
                 <TableBody>
                   {tags.map((tag) => (
                     <TableRow key={tag.id} className="border-gray-200">
-                      <TableCell className="text-black font-medium">{tag.tag}</TableCell>
+                      <TableCell className="text-black font-medium">
+                        {tag.tag}
+                      </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                          <Dialog open={editTagDialogOpen === tag.id} onOpenChange={(open) => setEditTagDialogOpen(open ? tag.id : null)}>
+                          <Dialog
+                            open={editTagDialogOpen === tag.id}
+                            onOpenChange={(open) =>
+                              setEditTagDialogOpen(open ? tag.id : null)
+                            }
+                          >
                             <DialogTrigger>
                               <span className="inline-flex items-center justify-center w-8 h-8 border border-black rounded-md hover:bg-gray-100 cursor-pointer">
                                 <Pencil className="w-4 h-4" />
@@ -428,17 +469,31 @@ export default function AdminDashboard() {
                             </DialogTrigger>
                             <DialogContent className="bg-white">
                               <DialogHeader>
-                                <DialogTitle className="text-black">Edit Tag</DialogTitle>
+                                <DialogTitle className="text-black">
+                                  Edit Tag
+                                </DialogTitle>
                               </DialogHeader>
                               <form
-                                action={(formData) => handleUpdateTag(tag.id, formData)}
+                                action={(formData) =>
+                                  handleUpdateTag(tag.id, formData)
+                                }
                                 className="space-y-4"
                               >
                                 <div>
-                                  <label className="text-black block mb-2">Tag Name</label>
-                                  <Input name="tag" defaultValue={tag.tag} required className="text-black" />
+                                  <label className="text-black block mb-2">
+                                    Tag Name
+                                  </label>
+                                  <Input
+                                    name="tag"
+                                    defaultValue={tag.tag}
+                                    required
+                                    className="text-black"
+                                  />
                                 </div>
-                                <Button type="submit" className="bg-black text-white hover:bg-gray-800">
+                                <Button
+                                  type="submit"
+                                  className="bg-black text-white hover:bg-gray-800"
+                                >
                                   Update Tag
                                 </Button>
                               </form>
