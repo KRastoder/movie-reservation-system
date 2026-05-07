@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,12 +30,34 @@ import {
   createTag,
   updateTag,
   deleteTag,
+  createMovieTag,
+  deleteMovieTag,
 } from "./movie-server-actions";
+import { createHallMovie, deleteHallMovie } from "./hall-movie-server-actions";
 import { movies, tags } from "@/db/movie-schema";
+import { halls } from "@/db/hall-schema";
 import type { InferSelectModel } from "drizzle-orm";
 
 type Movie = InferSelectModel<typeof movies>;
 type Tag = InferSelectModel<typeof tags>;
+type Hall = InferSelectModel<typeof halls>;
+
+type HallMovie = {
+  id: number;
+  movieTitle: string;
+  hallName: string;
+  airingDate: string;
+  airingTime: string | null;
+  price: string;
+};
+
+type MovieTag = {
+  id: number;
+  movieId: number;
+  tagId: number;
+  movieTitle: string;
+  tagName: string;
+};
 
 export default function AdminDashboard() {
   const [movies, setMovies] = useState<Movie[]>([]);
@@ -48,6 +71,11 @@ export default function AdminDashboard() {
   const [editTagDialogOpen, setEditTagDialogOpen] = useState<number | null>(
     null,
   );
+  const [hallMovies, setHallMovies] = useState<HallMovie[]>([]);
+  const [halls, setHalls] = useState<Hall[]>([]);
+  const [createHallMovieDialogOpen, setCreateHallMovieDialogOpen] = useState(false);
+  const [movieTags, setMovieTags] = useState<MovieTag[]>([]);
+  const [createMovieTagDialogOpen, setCreateMovieTagDialogOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -55,20 +83,33 @@ export default function AdminDashboard() {
 
   async function loadData() {
     try {
-      const [moviesRes, tagsRes] = await Promise.all([
-        fetch("/api/movies"),
-        fetch("/api/tags"),
-      ]);
+      const [moviesRes, tagsRes, hallsRes, showtimesRes, movieTagsRes] =
+        await Promise.all([
+          fetch("/api/movies"),
+          fetch("/api/tags"),
+          fetch("/api/halls"),
+          fetch("/api/hall-movies"),
+          fetch("/api/movie-tags"),
+        ]);
 
-      if (!moviesRes.ok || !tagsRes.ok) {
+      if (
+        !moviesRes.ok || !tagsRes.ok || !hallsRes.ok ||
+        !showtimesRes.ok || !movieTagsRes.ok
+      ) {
         throw new Error("Failed to fetch data");
       }
 
       const moviesData = await moviesRes.json();
       const tagsData = await tagsRes.json();
+      const hallsData = await hallsRes.json();
+      const showtimesData = await showtimesRes.json();
+      const movieTagsData = await movieTagsRes.json();
 
       setMovies(moviesData);
       setTags(tagsData);
+      setHalls(hallsData);
+      setHallMovies(showtimesData);
+      setMovieTags(movieTagsData);
       setLoading(false);
     } catch {
       setError("Failed to load data");
@@ -175,6 +216,67 @@ export default function AdminDashboard() {
     }
   }
 
+  async function handleCreateHallMovie(formData: FormData) {
+    try {
+      await createHallMovie(formData);
+      setSuccess("Showtime created successfully");
+      setError(null);
+      setCreateHallMovieDialogOpen(false);
+      await loadData();
+      setTimeout(() => {
+        setSuccess(null);
+      }, 2000);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to create showtime");
+      setSuccess(null);
+    }
+  }
+
+  async function handleDeleteHallMovie(id: number) {
+    if (!confirm("Are you sure you want to delete this showtime?")) return;
+
+    try {
+      await deleteHallMovie(id);
+      setSuccess("Showtime deleted successfully");
+      setError(null);
+      await loadData();
+      setTimeout(() => {
+        setSuccess(null);
+      }, 2000);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to delete showtime");
+      setSuccess(null);
+    }
+  }
+
+  async function handleCreateMovieTag(formData: FormData) {
+    try {
+      await createMovieTag(formData);
+      setSuccess("Movie-tag association created");
+      setError(null);
+      setCreateMovieTagDialogOpen(false);
+      await loadData();
+      setTimeout(() => setSuccess(null), 2000);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to associate tag");
+      setSuccess(null);
+    }
+  }
+
+  async function handleDeleteMovieTag(id: number) {
+    if (!confirm("Remove this tag from the movie?")) return;
+    try {
+      await deleteMovieTag(id);
+      setSuccess("Tag removed from movie");
+      setError(null);
+      await loadData();
+      setTimeout(() => setSuccess(null), 2000);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to remove tag");
+      setSuccess(null);
+    }
+  }
+
   if (loading)
     return (
       <div className="min-h-screen bg-white text-black p-8">Loading...</div>
@@ -201,7 +303,15 @@ export default function AdminDashboard() {
         )}
 
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Admin Dashboard - Movies</h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-3xl font-bold">Admin Dashboard - Movies</h1>
+            <Link
+              href="/admin/reservations"
+              className="text-sm text-gray-500 hover:text-black hover:cursor-pointer transition-colors underline underline-offset-2"
+            >
+              View Reservations
+            </Link>
+          </div>
 
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger>
@@ -508,6 +618,259 @@ export default function AdminDashboard() {
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          )}
+        </div>
+
+        {/* Movie Tags Section */}
+        <div className="mt-12">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-2xl font-bold">Movie Tags</h2>
+
+            <Dialog
+              open={createMovieTagDialogOpen}
+              onOpenChange={setCreateMovieTagDialogOpen}
+            >
+              <DialogTrigger>
+                <span className="inline-flex items-center gap-2 bg-white text-black hover:bg-gray-100 border border-black px-4 py-2 rounded-md text-sm font-medium cursor-pointer">
+                  <Plus className="w-4 h-4" />
+                  Add Tag to Movie
+                </span>
+              </DialogTrigger>
+              <DialogContent className="bg-white">
+                <DialogHeader>
+                  <DialogTitle className="text-black">
+                    Link Tag to Movie
+                  </DialogTitle>
+                </DialogHeader>
+                <form action={handleCreateMovieTag} className="space-y-4">
+                  <div>
+                    <label className="text-black block mb-2">Movie</label>
+                    <select
+                      name="movieId"
+                      required
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-black bg-white"
+                    >
+                      <option value="">Select a movie...</option>
+                      {movies.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-black block mb-2">Tag</label>
+                    <select
+                      name="tagId"
+                      required
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-black bg-white"
+                    >
+                      <option value="">Select a tag...</option>
+                      {tags.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.tag}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <Button
+                    type="submit"
+                    className="bg-black text-white hover:bg-gray-800"
+                  >
+                    Link Tag
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {movieTags.length === 0 ? (
+            <Alert className="bg-gray-50 border-gray-200">
+              <AlertDescription className="text-black">
+                No movie-tag associations yet.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Card className="bg-white border-gray-200">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-gray-200">
+                    <TableHead className="text-black">Movie</TableHead>
+                    <TableHead className="text-black">Tag</TableHead>
+                    <TableHead className="text-black">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {movieTags.map((mt) => (
+                    <TableRow key={mt.id} className="border-gray-200">
+                      <TableCell className="text-black font-medium">
+                        {mt.movieTitle}
+                      </TableCell>
+                      <TableCell className="text-black">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-xs font-medium">
+                          {mt.tagName}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDeleteMovieTag(mt.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          )}
+        </div>
+
+        {/* Showtimes Section */}
+        <div className="mt-12">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-2xl font-bold">Manage Showtimes</h2>
+
+            <Dialog
+              open={createHallMovieDialogOpen}
+              onOpenChange={setCreateHallMovieDialogOpen}
+            >
+              <DialogTrigger>
+                <span className="inline-flex items-center gap-2 bg-white text-black hover:bg-gray-100 border border-black px-4 py-2 rounded-md text-sm font-medium cursor-pointer">
+                  <Plus className="w-4 h-4" />
+                  Add Showtime
+                </span>
+              </DialogTrigger>
+              <DialogContent className="bg-white">
+                <DialogHeader>
+                  <DialogTitle className="text-black">
+                    Create New Showtime
+                  </DialogTitle>
+                </DialogHeader>
+                <form action={handleCreateHallMovie} className="space-y-4">
+                  <div>
+                    <label className="text-black block mb-2">Movie</label>
+                    <select
+                      name="movieId"
+                      required
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-black bg-white"
+                    >
+                      <option value="">Select a movie...</option>
+                      {movies.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-black block mb-2">Hall</label>
+                    <select
+                      name="hallId"
+                      required
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-black bg-white"
+                    >
+                      <option value="">Select a hall...</option>
+                      {halls.map((h) => (
+                        <option key={h.id} value={h.id}>
+                          {h.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-black block mb-2">Date</label>
+                    <Input
+                      name="airingDate"
+                      type="date"
+                      required
+                      className="text-black"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-black block mb-2">
+                      Time (optional)
+                    </label>
+                    <Input
+                      name="airingTime"
+                      type="time"
+                      className="text-black"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-black block mb-2">Price</label>
+                    <Input
+                      name="price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="12.50"
+                      required
+                      className="text-black"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    className="bg-black text-white hover:bg-gray-800"
+                  >
+                    Create Showtime
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {hallMovies.length === 0 ? (
+            <Alert className="bg-gray-50 border-gray-200">
+              <AlertDescription className="text-black">
+                No showtimes found. Create your first showtime above.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Card className="bg-white border-gray-200">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-gray-200">
+                    <TableHead className="text-black">Movie</TableHead>
+                    <TableHead className="text-black">Hall</TableHead>
+                    <TableHead className="text-black">Date</TableHead>
+                    <TableHead className="text-black">Time</TableHead>
+                    <TableHead className="text-black">Price</TableHead>
+                    <TableHead className="text-black">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {hallMovies.map((sm) => (
+                    <TableRow key={sm.id} className="border-gray-200">
+                      <TableCell className="text-black font-medium">
+                        {sm.movieTitle}
+                      </TableCell>
+                      <TableCell className="text-black">{sm.hallName}</TableCell>
+                      <TableCell className="text-black">
+                        {new Date(sm.airingDate).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-black">
+                        {sm.airingTime || "\u2014"}
+                      </TableCell>
+                      <TableCell className="text-black">
+                        &euro;{sm.price}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDeleteHallMovie(sm.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}

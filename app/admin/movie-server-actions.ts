@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { movies, tags, movieTags } from "@/db/movie-schema";
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { writeFile } from "fs/promises";
 import { join } from "path";
 import { z } from "zod";
@@ -194,9 +194,7 @@ export async function deleteTag(id: number) {
       throw new Error("Invalid tag ID");
     }
     
-    // Delete movie-tag associations first
     await db.delete(movieTags).where(eq(movieTags.tagId, id));
-    // Then delete the tag
     await db.delete(tags).where(eq(tags.id, id));
     revalidatePath("/admin");
   } catch (error) {
@@ -204,5 +202,45 @@ export async function deleteTag(id: number) {
       throw error;
     }
     throw new Error("Failed to delete tag");
+  }
+}
+
+export async function createMovieTag(formData: FormData) {
+  try {
+    const movieId = parseInt(formData.get("movieId") as string);
+    const tagId = parseInt(formData.get("tagId") as string);
+
+    if (isNaN(movieId) || isNaN(tagId)) {
+      throw new Error("Invalid movie or tag");
+    }
+
+    const existing = await db
+      .select({ id: movieTags.id })
+      .from(movieTags)
+      .where(
+        and(eq(movieTags.movieId, movieId), eq(movieTags.tagId, tagId)),
+      )
+      .limit(1);
+
+    if (existing.length > 0) {
+      throw new Error("This movie already has this tag");
+    }
+
+    await db.insert(movieTags).values({ movieId, tagId });
+    revalidatePath("/admin");
+  } catch (error) {
+    if (error instanceof Error) throw error;
+    throw new Error("Failed to create movie-tag association");
+  }
+}
+
+export async function deleteMovieTag(id: number) {
+  try {
+    if (!id || id < 1) throw new Error("Invalid ID");
+    await db.delete(movieTags).where(eq(movieTags.id, id));
+    revalidatePath("/admin");
+  } catch (error) {
+    if (error instanceof Error) throw error;
+    throw new Error("Failed to delete movie-tag association");
   }
 }
